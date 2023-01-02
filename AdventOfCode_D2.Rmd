@@ -1,0 +1,263 @@
+---
+title: 'Advent of Code: Day 1'
+author: "Caroline Falvey"
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+
+```
+
+### Day 2: Rock Paper Scissors
+
+## Part I:
+
+The Elves begin to set up camp on the beach. To decide whose tent gets
+to be closest to the snack storage, a giant Rock Paper Scissors
+tournament is already in progress.
+
+Rock Paper Scissors is a game between two players. Each game contains
+many rounds; in each round, the players each simultaneously choose one
+of Rock, Paper, or Scissors using a hand shape. Then, a winner for that
+round is selected: Rock defeats Scissors, Scissors defeats Paper, and
+Paper defeats Rock. If both players choose the same shape, the round
+instead ends in a draw.
+
+Appreciative of your help yesterday, one Elf gives you an encrypted
+strategy guide (your puzzle input) that they say will be sure to help
+you win. "The first column is what your opponent is going to play: A for
+Rock, B for Paper, and C for Scissors. The second column--" Suddenly,
+the Elf is called away to help with someone's tent.
+
+The second column, you reason, must be what you should play in response:
+X for Rock, Y for Paper, and Z for Scissors. Winning every time would be
+suspicious, so the responses must have been carefully chosen.
+
+The winner of the whole tournament is the player with the highest score.
+Your total score is the sum of your scores for each round. The score for
+a single round is the score for the shape you selected (1 for Rock, 2
+for Paper, and 3 for Scissors) plus the score for the outcome of the
+round (0 if you lost, 3 if the round was a draw, and 6 if you won).
+
+Since you can't be sure if the Elf is trying to help you or trick you,
+you should calculate the score you would get if you were to follow the
+strategy guide.
+
+For example, suppose you were given the following strategy guide:
+
+|     |     |
+|:---:|:---:|
+|  A  |  Y  |
+|  B  |  X  |
+|  C  |  Z  |
+
+This strategy guide predicts and recommends the following:
+
+-   In the first round, your opponent will choose Rock (A), and you
+    should choose Paper (Y). This ends in a win for you with a score of
+    8 (2 because you chose Paper + 6 because you won).
+
+-   In the second round, your opponent will choose Paper (B), and you
+    should choose Rock (X). This ends in a loss for you with a score of
+    1 (1 + 0).
+
+-   The third round is a draw with both players choosing Scissors,
+    giving you a score of 3 + 3 = 6. In this example, if you were to
+    follow the strategy guide, you would get a total score of 15 (8 +
+    1 + 6).
+
+**What would your total score be if everything goes exactly according to
+your strategy guide?**
+
+<br>
+
+```{r}
+
+# Read in raw data
+strategy <- read_csv("rps_2.txt", col_names = F)
+
+# Convert the raw data from a data frame to a vector
+strategy_2 <- as.vector(unlist(strategy))
+# Split the two characters from the raw data into separate columns
+split <- strsplit(strategy_2, " ")
+
+# Designate the first row as the opponent's choice
+opp <- unlist(lapply(split, `[[`, 1))
+# Designate the second row as our choice
+me <- unlist(lapply(split, `[[`, 2))
+
+# Create a data frame with the opponent's choice vs our choice
+strategy_clean <- cbind.data.frame(opp, me)
+
+# Rename the opponent's move so it matches X, Y, Z format
+# A = X (rock), B = Y (paper), C = Z (scissors)
+strategy_clean$opp[strategy_clean$opp == "A"] <- "X"
+strategy_clean$opp[strategy_clean$opp == "B"] <- "Y"
+strategy_clean$opp[strategy_clean$opp == "C"] <- "Z"
+
+# Designate points based on our choice in the round
+# rock = 1 pt, paper = 2 pts, scissors = 3 pts
+strategy_clean$initial_pts <- ifelse(strategy_clean$me == "X", 1,
+  ifelse(strategy_clean$me == "Y", 2, 3)
+)
+
+
+
+# Determine if we win, lose, or draw vs opponent for all games played
+for (i in 1:nrow(strategy_clean)) {
+  if (strategy_clean$opp[i] == strategy_clean$me[i]) {
+    strategy_clean$outcome[i] <- 3 # draw game (3 pts)
+  } else {
+    if (strategy_clean$opp[i] == "X" && strategy_clean$me[i] == "Z") {
+      strategy_clean$outcome[i] <- 0 # rock beats scissors (0 pts)
+    } else {
+      if (strategy_clean$opp[i] == "Y" && strategy_clean$me[i] == "X") {
+        strategy_clean$outcome[i] <- 0 # paper beats rock (0 pts)
+      } else {
+        if (strategy_clean$opp[i] == "Z" && strategy_clean$me[i] == "Y") {
+          strategy_clean$outcome[i] <- 0 # scissors beat paper (0 pts)
+        } else {
+          strategy_clean$outcome[i] <- 6 # all other options are a win (6 pts)
+        }
+      }
+    }
+  }
+}
+
+# Calculate the total points from each round (i.e. initial pts + match outcome)
+strategy_clean <- strategy_clean |>
+  mutate(total = initial_pts + outcome)
+
+# Sum the total points
+sum(strategy_clean$total) 
+## Answer = 10941
+
+```
+
+<br>
+
+Your puzzle answer was `r {sum(strategy_clean$total)}`.
+
+## Part II:
+
+The Elf finishes helping with the tent and sneaks back over to you.
+"Anyway, the second column says how the round needs to end: `X` means
+you need to lose, `Y` means you need to end the round in a draw, and `Z`
+means you need to win. Good luck!"
+
+The total score is still calculated in the same way, but now you need to
+figure out what shape to choose so the round ends as indicated. The
+example above now goes like this:
+
+-   In the first round, your opponent will choose Rock (`A`), and you
+    need the round to end in a draw (`Y`), so you also choose Rock. This
+    gives you a score of 1 + 3 = 4.
+
+-   In the second round, your opponent will choose Paper (`B`), and you
+    choose Rock so you lose (`X`) with a score of 1 + 0 = 1.
+
+-   In the third round, you will defeat your opponent's Scissors with
+    Rock for a score of 1 + 6 = 7.
+
+Now that you're correctly decrypting the ultra top secret strategy
+guide, you would get a total score of 12.
+
+**Following the Elf's instructions for the second column, what would
+your total score be if everything goes exactly according to your
+strategy guide?**
+
+<br>
+
+```{r}
+## Second Column:
+# X means we need to lose,
+# Y means we need to end the round in a draw, and
+# Z means we need to win
+
+# Create new data frame for the new rules
+strategy_new <- strategy_clean |>
+  select(opp, me)
+
+# X beats Z
+# Y beats X
+# Z beats Y
+
+for (j in 1:nrow(strategy_new)) {
+  if (strategy_new$me[j] == "Y") { 
+    # Game must end in draw. Our move will be the same as opponent's move
+    strategy_new$turn[j] <- strategy_new$opp[j]
+    # Draw game (3 pts)
+    strategy_new$match_pt[j] <- 3 
+  } else {
+    if (strategy_new$me[j] == "X" && strategy_new$opp[j] == "X") {
+      # Game must end in L. Opponent chooses rock, we choose scissors
+      strategy_new$turn[j] <- "Z"
+      # Loss (0 pts)
+      strategy_new$match_pt[j] <- 0
+    } else {
+      if (strategy_new$me[j] == "X" && strategy_new$opp[j] == "Y") {
+        # Game must end in L. Opponent chooses paper, we choose rock
+        strategy_new$turn[j] <- "X"
+        # Loss (0 pts)
+        strategy_new$match_pt[j] <- 0
+      } else {
+        if (strategy_new$me[j] == "X" && strategy_new$opp[j] == "Z") {
+          # Game must end in L. Opponent chooses scissors, we choose paper
+          strategy_new$turn[j] <- "Y"
+          # Loss (0 pts)
+          strategy_new$match_pt[j] <- 0
+        } else {
+          if (strategy_new$me[j] == "Z" && strategy_new$opp[j] == "X") {
+            # Game must end in W. Opponent chooses rock, we choose paper
+            strategy_new$turn[j] <- "Y"
+            # Win (6 pts)
+            strategy_new$match_pt[j] <- 6
+          } else {
+            if (strategy_new$me[j] == "Z" && strategy_new$opp[j] == "Y") {
+              # Game must end in W. Opponent chooses paper, we choose scissors
+              strategy_new$turn[j] <- "Z"
+              # Win (6 pts)
+              strategy_new$match_pt[j] <- 6
+            } else {
+              # Game must end in W. Opponent chooses scissors, we choose rock
+              strategy_new$turn[j] <- "X"
+              # Win (6 pts)
+              strategy_new$match_pt[j] <- 6
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+# Check data frame to make sure data is printing as expected
+head(strategy_new)
+
+# Designate points based on our choice in the round
+# rock = 1 pt, paper = 2 pts, scissors = 3 pts
+strategy_new$turn_pts <- ifelse(strategy_new$turn == "X", 1,
+  ifelse(strategy_new$turn == "Y", 2, 3)
+)
+
+# Calculate the total points from each round (i.e. initial pts + match outcome)
+strategy_new <- strategy_new |>
+  mutate(total_pts = match_pt + turn_pts)
+
+
+# Sum the total points
+sum(strategy_new$total_pts) 
+## Answer = 13071
+
+```
+
+<br>
+
+Your puzzle answer was `r {sum(strategy_new$total_pts)}`.
